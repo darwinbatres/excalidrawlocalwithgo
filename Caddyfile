@@ -1,0 +1,54 @@
+# =============================================================================
+# Caddy — Reverse Proxy for Drawgo
+# =============================================================================
+# Single entry point that routes:
+#   /api/v1/*  → Go backend  (HTTP + WebSocket)
+#   /*         → Next.js frontend
+#
+# Caddy automatically handles WebSocket upgrade requests, which Next.js
+# rewrites cannot do. This is critical for real-time cursor/presence features.
+#
+# Security headers are applied globally for defense-in-depth. When deployed
+# behind Cloudflare Tunnel, Cloudflare also applies its own protections (DDoS,
+# WAF, HSTS at the edge), but these headers remain for direct-access scenarios.
+# =============================================================================
+
+:80 {
+	# ─── Security Headers ───────────────────────────────────────────────
+	header {
+		# Prevent MIME-type sniffing
+		X-Content-Type-Options "nosniff"
+		# Disallow iframing (clickjacking protection)
+		X-Frame-Options "DENY"
+		# Control referrer leakage
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Restrict browser features
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		# Content Security Policy — allow self + inline styles (Excalidraw needs them)
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' wss: ws:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		# Remove server identity
+		-Server
+	}
+
+	# ─── API and WebSocket requests → Go backend ────────────────────────
+	handle /api/v1/* {
+		reverse_proxy backend:8080 {
+			# Timeouts for long-lived connections (WebSocket)
+			transport http {
+				read_timeout 0
+				write_timeout 0
+			}
+		}
+	}
+
+	# ─── Everything else → Next.js frontend ─────────────────────────────
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	# ─── Logging (structured JSON) ──────────────────────────────────────
+	log {
+		output stdout
+		format json
+	}
+}

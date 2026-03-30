@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs  
+.next
+out
+build
+dist
+
+# Development
+.env
+.env.local
+.env.development.local
+
+# IDE
+.idea
+.vscode
+
+# OS
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+Caddyfile
+
+# Backend (Go) — not needed for frontend build
+backend/
+
+# Documentation — not needed for frontend build
+docs/
+PLAN.md
+CONTRIBUTING.md
+SECURITY.md
+LICENSE
+*.md
+!README.md
+
+# Testing
+coverage
+
+# Misc
+*.log
+README.md
+todo.md

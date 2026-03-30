@@ -1,0 +1,422 @@
+# =============================================================================
+# Drawgo - Docker Compose
+# =============================================================================
+name: drawgo
+# Usage:
+#   docker compose up -d --build       # Start all services (local)
+#   docker compose down                # Stop all services
+#   docker compose logs -f backend     # Follow backend logs
+#   docker compose exec backend sh     # Shell into backend container
+#
+# With Cloudflare Tunnel (production):
+#   1. Create tunnel at https://one.dash.cloudflare.com → Networks → Tunnels
+#   2. Add public hostname → Service: HTTP, URL: caddy:80
+#   3. Set CLOUDFLARE_TUNNEL_TOKEN in .env
+#   4. Set CORS_ALLOWED_ORIGINS and NEXT_PUBLIC_APP_URL to your public domain
+#   5. docker compose --profile tunnel up -d --build
+#
+# With automated backups:
+#   docker compose --profile backup up -d --build
+#
+# Both profiles:
+#   docker compose --profile backup --profile tunnel up -d --build
+#
+# Architecture:
+#   Browser → Caddy:80 → /api/v1/* → backend:8080  (REST + WebSocket)
+#                       → /*       → frontend:3000  (Next.js SSR)
+#
+# Port Configuration (override in .env to avoid conflicts):
+#   POSTGRES_PORT=5433     (default: 5433, avoids conflict with host postgres)
+#   MINIO_API_PORT=9010    (default: 9010)
+#   MINIO_CONSOLE_PORT=9011 (default: 9011)
+#   BACKEND_PORT=8090      (default: 8090, direct backend access for debugging)
+#   APP_PORT=3021          (default: 3021, main entry point via Caddy)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: drawgo-postgres
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+      - FOWNER
+    deploy:
+      resources:
+        limits:
+          memory: ${POSTGRES_MEM_LIMIT:-1G}
+          cpus: "${POSTGRES_CPU_LIMIT:-1.0}"
+          pids: 200
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    shm_size: 256mb
+    oom_score_adj: -500
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILE:-3}"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-drawgo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-drawgo_secret_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-drawgo}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-drawgo} -d ${POSTGRES_DB:-drawgo}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # MinIO Object Storage (S3-compatible)
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: drawgo-minio
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    deploy:
+      resources:
+        limits:
+          memory: ${MINIO_MEM_LIMIT:-512M}
+          cpus: "${MINIO_CPU_LIMIT:-0.5}"
+          pids: 100
+        reservations:
+          memory: 256M
+          cpus: "0.1"
+    oom_score_adj: -200
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILE:-3}"
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9010}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9011}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # Go Backend API
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      additional_contexts:
+        gitdir: .git
+    container_name: drawgo-backend
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: ${BACKEND_MEM_LIMIT:-512M}
+          cpus: "${BACKEND_CPU_LIMIT:-1.0}"
+          pids: 200
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    tmpfs:
+      - /tmp:size=64M
+    oom_score_adj: -300
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILE:-5}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-drawgo}:${POSTGRES_PASSWORD:-drawgo_secret_change_me}@postgres:5432/${POSTGRES_DB:-drawgo}?sslmode=disable
+      S3_ENDPOINT: minio:9000
+      ENV: ${ENV:-development}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8090}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO/dev/null", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # Next.js Frontend (internal only — accessed via Caddy)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3021}
+        NEXT_PUBLIC_AUTOSAVE_INTERVAL_MS: ${NEXT_PUBLIC_AUTOSAVE_INTERVAL_MS:-10000}
+        NEXT_PUBLIC_WS_BROADCAST_INTERVAL_MS: ${NEXT_PUBLIC_WS_BROADCAST_INTERVAL_MS:-1000}
+    container_name: drawgo-frontend
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: ${FRONTEND_MEM_LIMIT:-512M}
+          cpus: "${FRONTEND_CPU_LIMIT:-0.5}"
+          pids: 100
+        reservations:
+          memory: 256M
+          cpus: "0.1"
+    tmpfs:
+      - /tmp:size=64M
+      - /app/.next/cache:size=128M
+    oom_score_adj: 0
+    ulimits:
+      nofile:
+        soft: 32768
+        hard: 32768
+    logging:
+      driver: json-file
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILE:-3}"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3021}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # Caddy Reverse Proxy (single entry point — routes HTTP + WebSocket)
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    container_name: drawgo-caddy
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    deploy:
+      resources:
+        limits:
+          memory: ${CADDY_MEM_LIMIT:-128M}
+          cpus: "${CADDY_CPU_LIMIT:-0.25}"
+          pids: 50
+        reservations:
+          memory: 64M
+          cpus: "0.05"
+    oom_score_adj: -400
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILE:-5}"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      # Bind to localhost only — use Cloudflare Tunnel for public access.
+      # For direct external access (no tunnel), change to "${APP_PORT:-3021}:80"
+      - "127.0.0.1:${APP_PORT:-3021}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO/dev/null", "http://localhost:80/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # Backup Scheduler (reuses backend image)
+  # ---------------------------------------------------------------------------
+  pgbackup:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      additional_contexts:
+        gitdir: .git
+    container_name: drawgo-pgbackup
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+          pids: 50
+        reservations:
+          memory: 128M
+          cpus: "0.1"
+    tmpfs:
+      - /tmp:size=64M
+    oom_score_adj: 300
+    logging:
+      driver: json-file
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILE:-3}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-drawgo}:${POSTGRES_PASSWORD:-drawgo_secret_change_me}@postgres:5432/${POSTGRES_DB:-drawgo}?sslmode=disable
+      S3_ENDPOINT: minio:9000
+      BACKUP_ENABLED: "true"
+      BACKUP_CRON: "${BACKUP_CRON:-0 3 * * *}"
+    profiles:
+      - backup
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # Cloudflare Tunnel (Optional - use profile "tunnel" to enable)
+  # ---------------------------------------------------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: drawgo-tunnel
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+          pids: 50
+        reservations:
+          memory: 64M
+          cpus: "0.05"
+    oom_score_adj: -100
+    logging:
+      driver: json-file
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILE:-3}"
+    profiles:
+      - tunnel
+    depends_on:
+      caddy:
+        condition: service_healthy
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - app-network
+
+# =============================================================================
+# Volumes (Docker Compose prefixes these with the project name "drawgo_")
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+
+# =============================================================================
+# Networks (Docker Compose prefixes with project name "drawgo_")
+# =============================================================================
+networks:
+  app-network:
+    driver: bridge

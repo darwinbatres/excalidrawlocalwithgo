@@ -1,0 +1,32 @@
+-- 001_init.down.sql — Reverse the entire initial schema
+DROP TABLE IF EXISTS backup_schedule CASCADE;
+
+DROP TABLE IF EXISTS backup_metadata CASCADE;
+
+DROP TABLE IF EXISTS share_links CASCADE;
+
+DROP TABLE IF EXISTS audit_events CASCADE;
+
+DROP TABLE IF EXISTS board_assets CASCADE;
+
+DROP TABLE IF EXISTS board_permissions CASCADE;
+
+DROP TABLE IF EXISTS board_versions CASCADE;
+
+DROP TABLE IF EXISTS boards CASCADE;
+
+DROP TABLE IF EXISTS memberships CASCADE;
+
+DROP TABLE IF EXISTS organizations CASCADE;
+
+DROP TABLE IF EXISTS refresh_tokens CASCADE;
+
+DROP TABLE IF EXISTS accounts CASCADE;
+
+DROP TABLE IF EXISTS users CASCADE;
+
+DROP TYPE IF EXISTS board_role;
+
+DROP TYPE IF EXISTS org_role;
+
+DROP EXTENSION IF EXISTS pg_trgm;

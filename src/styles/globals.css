@@ -1,0 +1,647 @@
+@import "tailwindcss";
+
+/* Tailwind 4 CSS-based configuration */
+@theme {
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
+    monospace;
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  @apply bg-white text-gray-900;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    @apply bg-gray-950 text-gray-100;
+  }
+}
+
+#__next {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   Excalidraw Container Overrides
+   ============================================ */
+
+/* Make sure Excalidraw fills its container */
+.excalidraw-wrapper {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.excalidraw {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* ============================================
+   Custom Scrollbar
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: #4b5563;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+}
+
+/* ============================================
+   Focus states
+   ============================================ */
+
+:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   Sonner Toast Overrides
+   ============================================ */
+
+/* Toast description text */
+.sonner-description {
+  color: #737373 !important;
+  font-size: 14px !important;
+  margin-top: 2px !important;
+}
+
+/* Toast action button */
+[data-sonner-toast] [data-button] {
+  background: #171717 !important;
+  color: white !important;
+  border-radius: 6px !important;
+  padding: 6px 12px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  border: none !important;
+}
+
+[data-sonner-toast] [data-button]:hover {
+  background: #404040 !important;
+}
+
+/* Remove default icons for cleaner look */
+[data-sonner-toast] [data-icon] {
+  display: none !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  [data-sonner-toast] {
+    background: #1c1c1e !important;
+    border-color: #38383a !important;
+    color: #f5f5f5 !important;
+  }
+
+  .sonner-description {
+    color: #a1a1a1 !important;
+  }
+
+  [data-sonner-toast] [data-button] {
+    background: #f5f5f5 !important;
+    color: #171717 !important;
+  }
+
+  [data-sonner-toast] [data-button]:hover {
+    background: #e5e5e5 !important;
+  }
+}
+
+/* ============================================
+   Tiptap Rich Text Editor Styles
+   ============================================ */
+
+/* Prose-like styling for Tiptap editor */
+.rich-text-editor .ProseMirror {
+  min-height: 200px;
+  padding: 1rem;
+  outline: none;
+}
+
+/* Placeholder styling */
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+    color: #6b7280;
+  }
+}
+
+/* Typography */
+.rich-text-editor .ProseMirror {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.rich-text-editor .ProseMirror h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.rich-text-editor .ProseMirror h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.rich-text-editor .ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.rich-text-editor .ProseMirror p {
+  margin: 0.5rem 0;
+}
+
+.rich-text-editor .ProseMirror strong {
+  font-weight: 700;
+}
+
+.rich-text-editor .ProseMirror em {
+  font-style: italic;
+}
+
+.rich-text-editor .ProseMirror u {
+  text-decoration: underline;
+}
+
+.rich-text-editor .ProseMirror s {
+  text-decoration: line-through;
+}
+
+/* Code styles */
+.rich-text-editor .ProseMirror code {
+  background: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rich-text-editor .ProseMirror code {
+    background: #374151;
+  }
+}
+
+.rich-text-editor .ProseMirror pre {
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+.rich-text-editor .ProseMirror pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+/* Blockquote */
+.rich-text-editor .ProseMirror blockquote {
+  border-left: 3px solid #6366f1;
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rich-text-editor .ProseMirror blockquote {
+    border-left-color: #818cf8;
+    color: #9ca3af;
+  }
+}
+
+/* Lists */
+.rich-text-editor .ProseMirror ul,
+.rich-text-editor .ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.rich-text-editor .ProseMirror ul {
+  list-style-type: disc;
+}
+
+.rich-text-editor .ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.rich-text-editor .ProseMirror li {
+  margin: 0.25rem 0;
+}
+
+/* Task list - applies to both editor and card viewer */
+.rich-text-editor .ProseMirror ul[data-type="taskList"],
+.rich-text-content .ProseMirror ul[data-type="taskList"],
+.rich-text-card .prose ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0;
+}
+
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li,
+.rich-text-content .ProseMirror ul[data-type="taskList"] li,
+.rich-text-card .prose ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li > label,
+.rich-text-content .ProseMirror ul[data-type="taskList"] li > label,
+.rich-text-card .prose ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.rich-text-editor
+  .ProseMirror
+  ul[data-type="taskList"]
+  li
+  > label
+  input[type="checkbox"],
+.rich-text-content
+  .ProseMirror
+  ul[data-type="taskList"]
+  li
+  > label
+  input[type="checkbox"],
+.rich-text-card
+  .prose
+  ul[data-type="taskList"]
+  li
+  > label
+  input[type="checkbox"] {
+  margin: 0;
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #6366f1;
+  border-radius: 0.25rem;
+}
+
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li > div,
+.rich-text-content .ProseMirror ul[data-type="taskList"] li > div,
+.rich-text-card .prose ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rich-text-editor
+  .ProseMirror
+  ul[data-type="taskList"]
+  li[data-checked="true"]
+  > div,
+.rich-text-content
+  .ProseMirror
+  ul[data-type="taskList"]
+  li[data-checked="true"]
+  > div,
+.rich-text-card .prose ul[data-type="taskList"] li[data-checked="true"] > div {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+/* Horizontal rule */
+.rich-text-editor .ProseMirror hr,
+.rich-text-content .ProseMirror hr,
+.rich-text-card .prose hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1rem 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rich-text-editor .ProseMirror hr,
+  .rich-text-content .ProseMirror hr,
+  .rich-text-card .prose hr {
+    border-top-color: #374151;
+  }
+}
+
+/* Links */
+.rich-text-editor .ProseMirror a {
+  color: #6366f1;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rich-text-editor .ProseMirror a:hover {
+  color: #4f46e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rich-text-editor .ProseMirror a {
+    color: #818cf8;
+  }
+  .rich-text-editor .ProseMirror a:hover {
+    color: #a5b4fc;
+  }
+}
+
+/* Highlight */
+.rich-text-editor .ProseMirror mark {
+  background-color: #fef08a;
+  padding: 0.125rem 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rich-text-editor .ProseMirror mark {
+    background-color: #854d0e;
+  }
+}
+
+/* Text alignment */
+.rich-text-editor .ProseMirror [style*="text-align: left"] {
+  text-align: left;
+}
+
+.rich-text-editor .ProseMirror [style*="text-align: center"] {
+  text-align: center;
+}
+
+.rich-text-editor .ProseMirror [style*="text-align: right"] {
+  text-align: right;
+}
+
+/* Rich text card viewer (readonly in canvas) */
+.rich-text-card-content {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.rich-text-card-content .ProseMirror {
+  padding: 0.5rem;
+}
+
+.rich-text-card-content h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.25rem 0;
+}
+
+.rich-text-card-content h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.25rem 0;
+}
+
+.rich-text-card-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.25rem 0;
+}
+
+.rich-text-card-content p {
+  margin: 0.25rem 0;
+}
+
+.rich-text-card-content ul,
+.rich-text-card-content ol {
+  padding-left: 1.25rem;
+  margin: 0.25rem 0;
+}
+
+.rich-text-card-content ul[data-type="taskList"] {
+  padding-left: 0;
+}
+
+.rich-text-card-content blockquote {
+  border-left: 2px solid #6366f1;
+  padding-left: 0.75rem;
+  margin: 0.25rem 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.rich-text-card-content pre {
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  overflow-x: auto;
+}
+
+.rich-text-card-content code {
+  background: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rich-text-card-content code {
+    background: #374151;
+  }
+}
+
+/* Table styles for Tiptap */
+.rich-text-editor .ProseMirror table,
+.rich-text-content .ProseMirror table,
+.rich-text-card table {
+  border-collapse: collapse;
+  table-layout: auto;
+  width: 100%;
+  margin: 0.5rem 0;
+  overflow: hidden;
+}
+
+.rich-text-editor .ProseMirror table td,
+.rich-text-editor .ProseMirror table th,
+.rich-text-content .ProseMirror table td,
+.rich-text-content .ProseMirror table th,
+.rich-text-card table td,
+.rich-text-card table th {
+  min-width: 1em;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.rich-text-editor .ProseMirror table th,
+.rich-text-content .ProseMirror table th,
+.rich-text-card table th {
+  font-weight: 600;
+  text-align: left;
+  background-color: #f3f4f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rich-text-editor .ProseMirror table td,
+  .rich-text-editor .ProseMirror table th,
+  .rich-text-content .ProseMirror table td,
+  .rich-text-content .ProseMirror table th,
+  .rich-text-card table td,
+  .rich-text-card table th {
+    border-color: #4b5563;
+  }
+
+  .rich-text-editor .ProseMirror table th,
+  .rich-text-content .ProseMirror table th,
+  .rich-text-card table th {
+    background-color: #374151;
+  }
+}
+
+.rich-text-editor .ProseMirror table .selectedCell:after,
+.rich-text-content .ProseMirror table .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(99, 102, 241, 0.2);
+  pointer-events: none;
+}
+
+/* Column resize handle */
+.rich-text-editor .ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #6366f1;
+  pointer-events: none;
+}
+
+/* Ensure prose class overrides work in rich text card */
+.rich-text-card .prose {
+  max-width: none;
+}
+
+.rich-text-card .prose h1 {
+  font-size: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-card .prose h2 {
+  font-size: 1.25rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-card .prose h3 {
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-card .prose p {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-card .prose ul,
+.rich-text-card .prose ol {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  padding-left: 1.25rem;
+}
+
+.rich-text-card .prose blockquote {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  padding-left: 0.75rem;
+  border-left-width: 3px;
+  border-left-color: #6366f1;
+  font-style: italic;
+}
+
+.rich-text-card .prose pre {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.rich-text-card .prose code {
+  font-size: 0.85em;
+  padding: 0.125rem 0.25rem;
+}

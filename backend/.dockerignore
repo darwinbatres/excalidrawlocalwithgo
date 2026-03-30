@@ -1,0 +1,20 @@
+# Test files
+**/*_test.go
+**/testutil/
+**/testdata/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Documentation
+README.md
